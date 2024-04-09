@@ -22,6 +22,19 @@ type CheckoutSessionRequest = {
   restaurantId: string;
 };
 
+async function getMyOrders(req: Request, res: Response) {
+  try {
+    const orders = await Order.find({ user: req.userId })
+      .populate("restaurant")
+      .populate("user");
+
+    res.json(orders);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Somethig went wrong" });
+  }
+}
+
 async function stripeWebhookHandler(req: Request, res: Response) {
   let event;
   try {
@@ -33,7 +46,7 @@ async function stripeWebhookHandler(req: Request, res: Response) {
     );
   } catch (error: any) {
     console.log(error);
-    return res.sendStatus(400).send(`Webhook error:${error.message}`);
+    return res.status(400).send(`Webhook error:${error.message}`);
   }
 
   if (event.type === "checkout.session.completed") {
@@ -111,7 +124,7 @@ function createLineItems(
     const line_item: Stripe.Checkout.SessionCreateParams.LineItem = {
       price_data: {
         currency: "inr",
-        unit_amount: menuItem.price * 10,
+        unit_amount: menuItem.price * 100,
         product_data: {
           name: menuItem.name,
         },
@@ -139,7 +152,7 @@ async function createSession(
           display_name: "Delivery",
           type: "fixed_amount",
           fixed_amount: {
-            amount: deliveryPrice * 10,
+            amount: deliveryPrice * 100,
             currency: "inr",
           },
         },
@@ -158,6 +171,7 @@ async function createSession(
 }
 
 export default {
+  getMyOrders,
   createCheckoutSession,
   stripeWebhookHandler,
 };
